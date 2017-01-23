@@ -12,7 +12,7 @@ version.
 
 import re
 from HTMLParser import HTMLParser
-from urlparse import urljoin
+from urlparse import urljoin, urlparse
 
 
 class UrlFinder:
@@ -41,8 +41,8 @@ class UrlHTMLParser(HTMLParser):
         # more info about the <base> tag: https://www.w3.org/wiki/HTML/Elements/base
         if tag == "base":
             for key, val in attrs:
-                if key == "href" and re.match("^https?://", val.strip(), re.I):
-                    self.base_url = val.strip()
+                if key == "href":
+                    self.base_url = urlparse(val.strip()).geturl()
 
         elif tag == "a":
             for key, val in attrs:
@@ -50,4 +50,4 @@ class UrlHTMLParser(HTMLParser):
                     if re.match("^https?://", val, re.I):
                         self.urls.extend([val])
                     elif not re.match("^[a-z]+:", val, re.I) and not val.startswith("#"):
-                        self.urls.extend([urljoin(self.base_url, val)])
+                        self.urls.extend([urljoin(self.base_url, val, False)])
