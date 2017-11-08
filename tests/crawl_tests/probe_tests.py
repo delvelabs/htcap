@@ -55,6 +55,6 @@ class SendProbeTest(unittest.TestCase):
         Shared.options['set_referer'] = None
         thread = CrawlerThread()
         params = thread._set_probe_params(req)
-        print(req)
         self.assertIn("http://example.com/", params)
-        pass
+
+

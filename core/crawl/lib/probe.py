@@ -13,6 +13,7 @@ version.
 from core.constants import *
 from core.lib.cookie import Cookie
 from core.lib.request import Request
+from core.lib.thirdparty.simhash import Simhash
 
 
 class Probe:
@@ -23,8 +24,8 @@ class Probe:
         self.redirect = None
         # if True the probe returned no error BUT the json is not closed properly
         self.partialcontent = False
+        self.hash = None
         self.user_output = []
-
         status = data.pop()
 
         if status['status'] == "error":
@@ -34,7 +35,7 @@ class Probe:
         if "partialcontent" in status:
             self.partialcontent = status['partialcontent']
 
-        # grap cookies before creating rquests
+        # grab cookies before creating requests
         for key, val in data:
             if key == "cookies":
                 for cookie in val:
@@ -54,6 +55,8 @@ class Probe:
                 self.requests.append(r)
             elif key == "user":
                 self.user_output.append(val)
+            elif key == "html":
+                self.hash = Simhash(val)
 
 
 

@@ -23,7 +23,7 @@ class Shared:
 
     main_condition = None
     th_condition = None
-
+    block_duplicates = False
     requests = []
     requests_index = 0
     crawl_results = []
@@ -37,3 +37,5 @@ class Shared:
     probe_cmd = []
 
     options = {}
+
+    hash_bucket = []

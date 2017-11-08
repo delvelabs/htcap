@@ -193,7 +193,7 @@
         getCookies() {
             return this._page.cookies();
         }
-    }
+      }
 
     Handler.Events = {
         Finished: 'finished',

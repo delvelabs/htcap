@@ -37,9 +37,8 @@ from core.lib.database import Database
 from core.lib.exception import NotHtmlException
 from core.lib.http_get import HttpGet
 from core.lib.request import Request
-from core.lib.shell import CommandExecutor
 from core.lib.utils import get_program_infos, getrealdir, print_progressbar, stdoutw, \
-    get_probe_cmd, normalize_url, cmd_to_str, generate_filename
+    normalize_url, cmd_to_str, generate_filename, get_probe_cmd
 
 
 # TODO: clean the exception handling (no more `except Exception:`)
@@ -127,6 +126,7 @@ Options:
   -O              don't override timeout functions (setTimeout, setInterval)
   -K              keep elements in the DOM (prevent removal)
   -e SEED         seed used to generate strings during crawl
+  -b              block duplicate content and near-duplicates.
 """.format(
             version=get_program_infos()['version'],
             crawl_output_rename=CRAWLOUTPUT_RENAME,
@@ -153,7 +153,6 @@ Options:
         :param argv:
         """
         Shared.options = self._defaults  # initialize shared options
-
         # initialize threads conditions
         Shared.th_condition = threading.Condition()
         Shared.main_condition = threading.Condition()
@@ -165,7 +164,7 @@ Options:
 
         # retrieving user arguments
         try:
-            opts, args = getopt.getopt(self.arg, 'ho:qvm:s:D:P:Fd:c:C:r:x:p:n:A:U:t:SGNR:IOKe:')
+            opts, args = getopt.getopt(self.arg, 'ho:qvm:s:D:P:Fd:c:C:r:x:p:n:A:U:t:SGNR:IOKe:b')
         except getopt.GetoptError as err:
             print(str(err))
             self._usage()
@@ -253,6 +252,8 @@ Options:
                 self._verbose = True
             elif o == "-e":  # seed for random value
                 Shared.options["random_seed"] = v
+            elif o == "-b":  # block duplicates and near-duplicates
+                Shared.block_duplicates = True
 
         # warn about -d option in domain scope mode
         if Shared.options['scope'] != CRAWLSCOPE_DOMAIN and len(Shared.allowed_domains) > 0:
@@ -285,6 +286,15 @@ Options:
                 " consider to upgrade to >= 2.7.9 in case of SSL errors")
 
     def run(self):
+        def _is_not_in_past_requests(request):
+            """
+            check if the given request is present in Shared.requests or start_requests
+            """
+            is_in_request = True
+            for r in Shared.requests + start_requests:
+                if r == request:
+                    is_in_request = False
+            return is_in_request
 
         # get database
         try:
@@ -333,16 +343,6 @@ Options:
         start_request_from_args = Request(
             REQTYPE_LINK, "GET", Shared.start_url, set_cookie=Shared.start_cookies,
             http_auth=self._http_auth, referer=self._start_referer)
-
-        def _is_not_in_past_requests(request):
-            """
-            check if the given request is present in Shared.requests or start_requests
-            """
-            is_in_request = True
-            for r in Shared.requests + start_requests:
-                if r == request:
-                    is_in_request = False
-            return is_in_request
 
         # check starting url
         if self._initial_checks:
@@ -422,10 +422,10 @@ Options:
         # update end date in db
         database.update_crawl_info(crawl_id, self.crawl_end_date, Shared.options["random_seed"], Shared.end_cookies)
 
+
     def _main_loop(self, threads, start_requests, database, display_progress=True, verbose=False):
         pending = len(start_requests)
         crawled = 0
-
         req_to_crawl = start_requests
         try:
             while True:
@@ -471,7 +471,6 @@ Options:
                                 print("  new request found %s" % req)
 
                             database.save_request(req)
-
                             if request_is_crawlable(req) and req not in Shared.requests and req not in req_to_crawl:
                                 if request_depth(req) > Shared.options['max_depth'] or request_post_depth(req) > \
                                         Shared.options['max_post_depth']:

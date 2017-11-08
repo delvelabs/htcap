@@ -16,7 +16,6 @@ from urlparse import urljoin, urlsplit
 
 from core.constants import *
 from core.lib.cookie import Cookie
-from core.lib.thirdparty.simhash import Simhash
 from core.lib.utils import extract_http_auth, normalize_url, remove_tokens
 
 
@@ -25,11 +24,10 @@ class Request(object):
                  set_cookie=None, http_auth=None, db_id=None, parent_db_id=None, out_of_scope=None):
         self.type = type
         self.method = method
-        self._html = None
-        self._html_hash = None
         self.user_output = []
+        self.html = None
+        self._html_hash = None
         url = url.strip()
-
         try:
             url = url.decode("utf-8")
         except:
@@ -54,7 +52,6 @@ class Request(object):
 
         # parent is the parent request that can be a redirect, referer is the referer page (ahead of redirects)
         self._parent = parent
-
         self.data = data if data else ""
         self.trigger = trigger
         self.db_id = db_id
@@ -100,7 +97,6 @@ class Request(object):
     @html.setter
     def html(self, value):
         self._html = value
-        self._html_hash = Simhash(value)
 
     def get_dict(self):
         return dict(
